@@ -2,11 +2,29 @@
 
 Free cam for administrators with the option to fix to players.
 
-# V0.1 Preview Video
+# V0.1.1 Preview Video
 
 [Example video](https://streamable.com/zjhup8)
 
 _Forgot to turn off Twitch overlay and mute music heh_
+
+| Keyboard/Mouse | Controller | Action     |
+| -------------- | ---------- | ---------- |
+| C              | R3         | Zoom in    |
+| E              | L3         | Zoom out   |
+| Mouse right    | R3 right   | Look right |
+| Mouse down     | R3 down    | Look down  |
+| [/](#Bugs)     | R3 left    | Look left  |
+| [/](#Bugs)     | R3 up      | Look up    |
+
+# Bugs
+
+- Looking left/up doesn't work when spectating vehicle with mouse yet. Only right stick on controller!
+- Mouse needs high sensititvity
+
+# V0.1.2 (Not shown in the video)
+
+- I just added the feature that you can hold C/R3 when setting the FOV and then use your controller's trigger or W/S to zoom in/out
 
 # TODO
 

@@ -68,20 +68,29 @@ let camControlTick = setTick(() => {
       // look Left
       camZ += 1.8 * (camFov / fovRelativeSensRatio)
     }
-    if (
-      IsDisabledControlJustPressed(0, 26) ||
-      IsDisabledControlJustPressed(0, 79)
-    ) {
-      //Right Stick
-      camFov += 10
-      if (camFov > 140) camFov = 140
-      console.log('FOV: ' + camFov)
+    if (IsDisabledControlPressed(0, 26) || IsDisabledControlPressed(0, 79)) {
+      if (
+        IsDisabledControlJustPressed(0, 26) ||
+        IsDisabledControlJustPressed(0, 79)
+      ) {
+        //Right Stick
+        camFov += 10
+        if (camFov > 140) camFov = 140
+      } else if (IsControlPressed(0, 71)) {
+        camFov += GetControlUnboundNormal(0, 71) * 1.4
+        if (camFov > 140) camFov = 140
+      } else if (IsControlPressed(0, 72)) {
+        camFov -= GetControlUnboundNormal(0, 72) * 1.4
+        if (camFov < 10) camFov = 10
+      }
     } else if (
       IsDisabledControlJustPressed(0, 36) ||
       IsDisabledControlJustPressed(0, 86)
     ) {
       //Left Stick
-      camFov -= 10
+      camFov -= IsControlPressed(0, 71)
+        ? GetControlUnboundNormal(0, 71) * 10
+        : 10
       if (camFov < 10) camFov = 10
       console.log('FOV: ' + camFov)
     }
