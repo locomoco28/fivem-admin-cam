@@ -6,7 +6,7 @@ Free cam for administrators with the option to fix to players.
 
 [Example video](https://streamable.com/zjhup8)
 
-_Forgot to turn off Twitch overlay_
+_Forgot to turn off Twitch overlay and mute music heh_
 
 # TODO
 
