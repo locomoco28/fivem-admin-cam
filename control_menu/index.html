@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Cam by Github/locomoco28 - Player controls view</title>
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="nui://fivem-admin-cam/control_menu/style.css"
+    />
+  </head>
+  <body>
+    <main>
+      <h1>
+        Player {{playername || "Unknown"}}
+        <span>{{isKeyboard ? "⌨" : "🎮"}}</span>
+      </h1>
+      <div class="info-container">
+        <span class="info-item">
+          <span class="label">Acceleration</span>
+          <progress max="127" :value="acceleration">
+            <span>{{acceleration}}</span>
+          </progress>
+        </span>
+        <span class="info-item">
+          <span class="label">Braking</span>
+          <progress max="127" :value="braking">
+            <span>{{braking}}</span>
+          </progress>
+        </span>
+        <span class="info-item">
+          <span class="label">Steering</span>
+          <progress max="255" :value="steering">
+            <span>{{steering}}</span>
+          </progress>
+        </span>
+      </div>
+    </main>
+
+    <!----
+    <script src="nui://fivem-admin-cam/control_menu/vue.js"></script>
+    <!---->
+    <script src="nui://fivem-admin-cam/control_menu/vue.min.js"></script>
+    <!---->
+    <script src="nui://fivem-admin-cam/control_menu/main.js"></script>
+  </body>
+</html>

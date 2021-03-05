@@ -2,14 +2,12 @@
  * FiveM admin-cam
  * Client code
  */
-log('starting admin cam')
 
 let activePlayers = []
 emitNet('getAllPlayers')
 onNet('updateAllPlayers', (playerList) => {
   activePlayers = playerList
 })
-log('a-cam: player list update handler')
 
 let spawnedPed = null
 let spawnedPedVeh = null
@@ -17,88 +15,12 @@ let spawnedPedVeh = null
 let cam = null
 let isSpectate = false
 
-let camControlTick = setTick(() => {
-  if (IsControlPressed(0, 71))
-    console.log('Accelerate RT val: ' + GetControlUnboundNormal(0, 71))
-  if (IsControlPressed(0, 72))
-    console.log('Deccelerate LT val: ' + GetControlUnboundNormal(0, 72))
-  if (IsControlPressed(0, 278))
-    console.log('Move L val: ' + GetControlValue(0, 278))
-  if (IsControlPressed(0, 279))
-    console.log('Move R val: ' + GetControlValue(0, 279))
-  if (IsControlPressed(0, 280))
-    console.log('Move Up val: ' + GetControlValue(0, 280))
-  if (IsControlPressed(0, 281))
-    console.log('Move Down val: ' + GetControlValue(0, 281))
-
-  if (!DoesCamExist(cam)) {
-    DisableControlAction(0, 1, false)
-    DisableControlAction(0, 2, false)
-    DisableControlAction(0, 3, false)
-    DisableControlAction(0, 5, false)
-    DisableControlAction(0, 79, false)
-    DisableControlAction(0, 86, false)
-  } else {
-    DisableControlAction(0, 1, true)
-    DisableControlAction(0, 2, true)
-    DisableControlAction(0, 3, true)
-    DisableControlAction(0, 5, true)
-    DisableControlAction(0, 79, true)
-    DisableControlAction(0, 86, true)
-    DisableControlAction(0, 26, true)
-    DisableControlAction(0, 36, true)
-    let [camX, camY, camZ] = GetCamRot(cam, 2)
-    let camFov = GetCamFov(cam)
-    const fovRelativeSensRatio = 90 // smaller = quicker look-around
-    if (IsDisabledControlPressed(0, 3)) {
-      // look Up
-      camX += 1.3 * (camFov / fovRelativeSensRatio)
-      if (camX > 90) camX = 89
-      else if (camX < -90) camX = -89
-    } else if (IsDisabledControlPressed(0, 2)) {
-      // look Down
-      camX -= 1.3 * (camFov / fovRelativeSensRatio)
-      if (camX > 90) camX = 89
-      else if (camX < -90) camX = -89
-    }
-    if (IsDisabledControlPressed(0, 1)) {
-      // look Right
-      camZ -= 1.8 * (camFov / fovRelativeSensRatio)
-    } else if (IsDisabledControlPressed(0, 5)) {
-      // look Left
-      camZ += 1.8 * (camFov / fovRelativeSensRatio)
-    }
-    if (IsDisabledControlPressed(0, 26) || IsDisabledControlPressed(0, 79)) {
-      if (
-        IsDisabledControlJustPressed(0, 26) ||
-        IsDisabledControlJustPressed(0, 79)
-      ) {
-        //Right Stick
-        camFov += 10
-        if (camFov > 140) camFov = 140
-      } else if (IsControlPressed(0, 71)) {
-        camFov += GetControlUnboundNormal(0, 71) * 1.4
-        if (camFov > 140) camFov = 140
-      } else if (IsControlPressed(0, 72)) {
-        camFov -= GetControlUnboundNormal(0, 72) * 1.4
-        if (camFov < 10) camFov = 10
-      }
-    } else if (
-      IsDisabledControlJustPressed(0, 36) ||
-      IsDisabledControlJustPressed(0, 86)
-    ) {
-      //Left Stick
-      camFov -= IsControlPressed(0, 71)
-        ? GetControlUnboundNormal(0, 71) * 10
-        : 10
-      if (camFov < 10) camFov = 10
-      console.log('FOV: ' + camFov)
-    }
-
-    SetCamRot(cam, camX, 0, camZ, 2)
-    SetCamFov(cam, camFov)
-  }
-})
+const camCoordRanges = {
+  x: { max: 10, min: -10 },
+  y: { max: 15, min: -15 },
+  z: { min: 2, max: 15 },
+  fov: { min: 10, max: 140 },
+}
 
 RegisterCommand(
   'fixCamToPed',
@@ -116,26 +38,31 @@ RegisterCommand(
       ped = tmpPed
     }
 
+    let eCoords = GetEntityCoords(ped),
+      eRot = GetGameplayCamRot(2)
+
     if (!DoesCamExist(cam)) {
       cam = CreateCameraWithParams(
         'DEFAULT_SCRIPTED_CAMERA',
-        GetGameplayCamCoord(),
-        GetGameplayCamRot(2),
+        eCoords,
+        eRot,
         100,
         true,
         2
       )
     }
+    playerInvisible()
 
-    AttachCamToEntity(cam, ped, 0, 0, 14, true)
-    SetCamFov(cam, 100)
+    AttachCamToEntity(cam, ped, 0, 0, 12, false)
 
     SetCamActive(cam, true)
     RenderScriptCams(true, 1, 500, true, false, false)
+
+    // important to call after player invisible so the last location gets cached
+    setTickTimer()
   },
   false
 )
-log('a-cam: fix to player')
 
 RegisterCommand(
   'setCamFov',
@@ -145,11 +72,14 @@ RegisterCommand(
   },
   false
 )
-log('a-cam: set fov')
 
 RegisterCommand(
   'stopWatch',
   (src, args, raw) => {
+    clearTickTimer()
+
+    Wait(1)
+
     if (DoesCamExist(cam)) {
       // destroy cam
       SetCamActive(cam, false)
@@ -157,11 +87,11 @@ RegisterCommand(
       cam = null
     }
 
+    playerVisible()
     RenderScriptCams(false, 1, 500, true, false, false)
   },
   false
 )
-log('a-cam: stopwatch')
 
 RegisterCommand(
   'spawnRandomPed',
@@ -218,9 +148,6 @@ RegisterCommand(
   },
   false
 )
-log('a-cam: spawn')
-
-log('started admin cam')
 
 function sendInfo(txt) {
   emit('chat:addMessage', {
@@ -238,4 +165,195 @@ function log(txt) {
   emit('chat:addMessage', {
     args: [txt],
   })
+}
+
+let playerLastLocation = [0, 0, 0]
+function playerInvisible() {
+  let playerPed = GetPlayerPed(-1)
+  let oldpLoc = playerLastLocation
+  playerLastLocation = GetEntityCoords(playerPed)
+  console.log(
+    'Logged player last location from ' +
+      JSON.stringify(oldpLoc) +
+      ' to ' +
+      JSON.stringify(playerLastLocation)
+  )
+  FreezeEntityPosition(playerPed, true)
+  NetworkConcealEntity(playerPed, true)
+}
+
+function playerVisible() {
+  let playerPed = GetPlayerPed(-1)
+  console.log(
+    'Recovering player with location ' + JSON.stringify(playerLastLocation)
+  )
+  Wait(1000)
+  let safeCoord = GetSafeCoordForPed(
+    playerLastLocation[0],
+    playerLastLocation[1],
+    playerLastLocation[2],
+    true,
+    0
+  )
+  SetEntityCoords(
+    playerPed,
+    safeCoord[0],
+    safeCoord[1],
+    safeCoord[2],
+    false,
+    false,
+    false,
+    false
+  )
+  NetworkConcealEntity(playerPed, false)
+  FreezeEntityPosition(playerPed, false)
+  playerLastLocation = [0, 0, 0]
+}
+
+let camControlTick = null
+function setTickTimer() {
+  if (camControlTick != null) clearTickTimer()
+  camControlTick = setTick(adminTickFunc)
+}
+function clearTickTimer() {
+  clearTick(camControlTick)
+  camControlTick = null
+}
+
+let camOffset = {
+  coords: [0, 0, camCoordRanges.z.min],
+  rot: [0, 0, 0],
+  fov: 100,
+}
+function adminTickFunc() {
+  let playerPed = GetPlayerPed(-1)
+
+  if (!DoesCamExist(cam)) {
+    return
+  }
+
+  //let newCamLoc = { ...camOffset }
+  const fovRelativeSensRatio = 90 // smaller = quicker look-around
+
+  let drawData = []
+
+  // + special key 45 used for fov/zoom
+  if (IsControlPressed(0, 45)) {
+    if (IsControlPressed(0, 71)) {
+      // Zoom In
+      camOffset.fov -= GetControlValue(0, 71) / 30
+      if (camOffset.fov < camCoordRanges.fov.min)
+        camOffset.fov = camCoordRanges.fov.min
+    } else if (IsControlPressed(0, 72)) {
+      // Zoom Out
+      camOffset.fov += GetControlValue(0, 72) / 30
+      if (camOffset.fov > camCoordRanges.fov.max)
+        camOffset.fov = camCoordRanges.fov.max
+    }
+  } else {
+    // Move Left/Right
+    camOffset.coords[0] += (GetControlValue(0, 30) - 127) * 0.01
+    if (camOffset.coords[0] < camCoordRanges.x.min)
+      camOffset.coords[0] = camCoordRanges.x.min
+    else if (camOffset.coords[0] > camCoordRanges.x.max)
+      camOffset.coords[0] = camCoordRanges.x.max
+    // Move Forward/Backward
+    camOffset.coords[1] -= (GetControlValue(0, 31) - 127) * 0.01
+    if (camOffset.coords[1] < camCoordRanges.y.min)
+      camOffset.coords[1] = camCoordRanges.y.min
+    else if (camOffset.coords[1] > camCoordRanges.y.max)
+      camOffset.coords[1] = camCoordRanges.y.max
+
+    // Move Up
+    if (IsControlPressed(0, 36)) {
+      camOffset.coords[2] += 0.7
+      if (camOffset.coords[2] > camCoordRanges.z.max)
+        camOffset.coords[2] = camCoordRanges.z.max
+    }
+    // Move Down
+    else if (IsControlPressed(0, 26)) {
+      camOffset.coords[2] -= 0.7
+      if (camOffset.coords[2] < camCoordRanges.z.min)
+        camOffset.coords[2] = camCoordRanges.z.min
+    }
+  }
+
+  // higher sens for mouse
+  lookaroundSens = IsInputDisabled(2) ? 0.1 : 0.03
+
+  // Look Left/Right
+  camOffset.rot[2] -=
+    (((GetControlValue(0, 1) - 127) * camOffset.fov) / 180) * lookaroundSens
+  if (camOffset.rot[2] < -360 || camOffset.rot[2] > 360) camOffset.rot[2] = 0
+  // Look Up/Down
+  camOffset.rot[0] -=
+    (((GetControlValue(0, 2) - 127) * camOffset.fov) / 180) * lookaroundSens
+  if (camOffset.rot[0] < -89) camOffset.rot[0] = -89
+  else if (camOffset.rot[0] > 89) camOffset.rot[0] = 89
+
+  // update coords
+  AttachCamToEntity(
+    cam,
+    spawnedPed,
+    camOffset.coords[0],
+    camOffset.coords[1],
+    camOffset.coords[2],
+    false
+  )
+
+  // didn't work with the selected ped coord smh
+  let playerPedCoords = GetCamCoord(cam)
+
+  SetEntityCoords(
+    playerPed,
+    playerPedCoords[0],
+    playerPedCoords[1],
+    playerPedCoords[2],
+    false,
+    false,
+    false,
+    false
+  )
+
+  // update rot
+  SetCamRot(cam, camOffset.rot[0], camOffset.rot[1], camOffset.rot[2], 2)
+  // update fov
+  SetCamFov(cam, camOffset.fov)
+
+  SetTextFont(0)
+  SetTextProportional(1)
+  SetTextScale(0.0, 0.3)
+  SetTextColour(128, 128, 128, 255)
+  SetTextDropshadow(0, 0, 0, 0, 255)
+  SetTextEdge(1, 0, 0, 0, 255)
+  SetTextDropShadow()
+  SetTextOutline()
+  SetTextEntry('STRING')
+  AddTextComponentString(
+    Object.keys(camOffset)
+      .map(
+        (x) =>
+          `${x}:${
+            x == 'fov'
+              ? camOffset[x]
+              : ` ${Object.keys(camOffset[x]).map(
+                  (y) => `${y}: ${camOffset[x][y].toFixed(2)}`
+                )}`
+          }`
+      )
+      .join(', ')
+  )
+  DrawText(0.005, 0.15)
+}
+
+function quickArrCompare(a1, a2) {
+  if (!Array.isArray(a1) || !Array.isArray(a2))
+    throw new Error('Plesae give 2 arrays in the parameters')
+
+  // https://stackoverflow.com/questions/7837456/how-to-compare-arrays-in-javascript/7837725#7837725
+  var i = a1.length
+  while (i--) {
+    if (a1[i] !== a2[i]) return false
+  }
+  return true
 }
