@@ -2,17 +2,14 @@
 
 Free cam for administrators with the option to fix to players.
 
-# V0.2 Preview Video
+# V0.3 Preview Video
 
-[Example video (V0.2.7)](https://streamable.com/ofl1oj)
+[Example video (V0.3.3)](https://streamable.com/wrg91e)
 
-_Forgot to mute music again and didn't move the whole window into the screen but whatever eh_
+## V0.3.3
 
-Something that hasn't been shown in the video: when holding the trigger button (R/B) to change the FOV, the movement input gets blocked in favor to the keyboard controls (Zoom In/Out: W/S)
-
-## V0.2.8
-
-Added config file and [commands](#Commands)
+- Camera is moving relative to its heading
+  - Huge UX impact, finally usable! :D
 
 # Commands
 
@@ -55,11 +52,6 @@ Available config types so far:
 | Zoom         | 45      | INPUT_RELOAD | R        | B       |
 
 _Trigger type = button to hold for referenced movement_
-
-# Issues
-
-- Movement happens relative to the world
-  - It's not impacted by the rotation of the player which makes the controls kinda confusing
 
 # TODO
 

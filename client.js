@@ -268,9 +268,11 @@ function sendError(txt, options = {}) {
 }
 function log(txt) {
   console.log(txt)
+  /**
   emit('chat:addMessage', {
     args: [txt],
   })
+  /**/
 }
 
 let playerLastLocation = [0, 0, 0]
@@ -279,7 +281,7 @@ function playerInvisible() {
   let oldpLoc = playerLastLocation
   playerLastLocation = GetEntityCoords(playerPed)
   Wait(1000)
-  console.log(
+  log(
     'Logged player last location from ' +
       JSON.stringify(oldpLoc) +
       ' to ' +
@@ -292,9 +294,7 @@ function playerInvisible() {
 
 function playerVisible() {
   let playerPed = GetPlayerPed(-1)
-  console.log(
-    'Recovering player with location ' + JSON.stringify(playerLastLocation)
-  )
+  log('Recovering player with location ' + JSON.stringify(playerLastLocation))
   Wait(1000)
   let safeCoord = GetSafeCoordForPed(
     playerLastLocation[0],
@@ -371,14 +371,30 @@ function adminTickFunc() {
         camOffset.fov = camCoordRanges.fov.max
     }
   } else {
+    // 180 > rotation > -180
+    const cameraRot = GetCamRot(cam, 2)[2]
+    const cameraRotNormalize = cameraRot + 90 // normalize (only positive) and turn 90 deg (make rotation start on positive X axis)
+
     // Move Left/Right
-    camOffset.coords[0] += (GetControlValue(0, 30) - 127) * movementFactor
+    camOffset.coords[0] -=
+      Cos(cameraRotNormalize + 90) *
+      (GetControlValue(0, 30) - 127) *
+      movementFactor
+    camOffset.coords[1] -=
+      Sin(cameraRotNormalize + 90) *
+      (GetControlValue(0, 30) - 127) *
+      movementFactor
+
+    // Move Up
+    camOffset.coords[0] -=
+      Cos(cameraRotNormalize) * (GetControlValue(0, 31) - 127) * movementFactor
+    camOffset.coords[1] -=
+      Sin(cameraRotNormalize) * (GetControlValue(0, 31) - 127) * movementFactor
+
     if (camOffset.coords[0] < camCoordRanges.x.min)
       camOffset.coords[0] = camCoordRanges.x.min
     else if (camOffset.coords[0] > camCoordRanges.x.max)
       camOffset.coords[0] = camCoordRanges.x.max
-    // Move Forward/Backward
-    camOffset.coords[1] -= (GetControlValue(0, 31) - 127) * movementFactor
     if (camOffset.coords[1] < camCoordRanges.y.min)
       camOffset.coords[1] = camCoordRanges.y.min
     else if (camOffset.coords[1] > camCoordRanges.y.max)
@@ -439,31 +455,6 @@ function adminTickFunc() {
   SetCamRot(cam, camOffset.rot[0], camOffset.rot[1], camOffset.rot[2], 2)
   // update fov
   SetCamFov(cam, camOffset.fov)
-
-  SetTextFont(0)
-  SetTextProportional(1)
-  SetTextScale(0.0, 0.3)
-  SetTextColour(128, 128, 128, 255)
-  SetTextDropshadow(0, 0, 0, 0, 255)
-  SetTextEdge(1, 0, 0, 0, 255)
-  SetTextDropShadow()
-  SetTextOutline()
-  SetTextEntry('STRING')
-  AddTextComponentString(
-    Object.keys(camOffset)
-      .map(
-        (x) =>
-          `${x}:${
-            x == 'fov'
-              ? camOffset[x]
-              : ` ${Object.keys(camOffset[x]).map(
-                  (y) => `${y}: ${camOffset[x][y].toFixed(2)}`
-                )}`
-          }`
-      )
-      .join(', ')
-  )
-  DrawText(0.005, 0.15)
 }
 
 function quickArrCompare(a1, a2) {

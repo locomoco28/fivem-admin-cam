@@ -3,7 +3,7 @@ game 'gta5'
 
 author 'Eren Karahasan<locomoco.dev@gmail.com>'
 description 'Administrator Camera'
-version '0.2.8'
+version '0.3.3'
 
 client_script 'client.js'
 server_script 'server.js'
