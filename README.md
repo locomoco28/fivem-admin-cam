@@ -2,13 +2,32 @@
 
 Free cam for administrators with the option to fix to players.
 
-# V0.2.7 Preview Video
+# V0.2 Preview Video
 
-[Example video](https://streamable.com/ofl1oj)
+[Example video (V0.2.7)](https://streamable.com/ofl1oj)
 
 _Forgot to mute music again and didn't move the whole window into the screen but whatever eh_
 
 Something that hasn't been shown in the video: when holding the trigger button (R/B) to change the FOV, the movement input gets blocked in favor to the keyboard controls (Zoom In/Out: W/S)
+
+## V0.2.8
+
+Added config file and [commands](#Commands)
+
+# Commands
+
+| Command         | Arguments                 | Description                 |
+| --------------- | ------------------------- | --------------------------- |
+| /acam-getconfig |                           | Show current config in chat |
+| /acam-setconfig | <config type> <new value> | Update a config             |
+
+Available config types so far:
+
+| Config Name       | Default Value | Description                                   |
+| ----------------- | ------------- | --------------------------------------------- |
+| mouse-look-sens   | 0.1           | Lookaround sensitivity for keyboard and mouse |
+| gamepad-look-sens | 0.03          | Lookaround sensitivity for controllers        |
+| movement-factor   | 0.001         | Movement speed factor                         |
 
 # Controls
 

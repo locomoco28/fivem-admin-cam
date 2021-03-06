@@ -3,6 +3,21 @@
  * Client code
  */
 
+// TODO: create external config file
+const Config = {
+  'mouse-look-sens': {
+    uxName: 'Mouse Sensitivity',
+    type: 'float',
+    value: 0.1,
+  },
+  'gamepad-look-sens': {
+    uxName: 'Gamepad Look Sensitivity',
+    type: 'float',
+    value: 0.03,
+  },
+  'movement-factor': { uxName: 'Movement Factor', type: 'float', value: 0.01 },
+}
+
 let activePlayers = []
 emitNet('getAllPlayers')
 onNet('updateAllPlayers', (playerList) => {
@@ -21,6 +36,94 @@ const camCoordRanges = {
   z: { min: 2, max: 15 },
   fov: { min: 10, max: 140 },
 }
+
+RegisterCommand('acam-getconfig', (src, args, raw) => {
+  sendInfo('Current configuration:', { color: [255, 180, 0] })
+  sendInfo(
+    'Sensitivity Factor Mouse: ' +
+      (
+        GetResourceKvpFloat('MOUSELOOKSENS') || Config['mouse-look-sens'].value
+      ).toFixed(3),
+    { color: [255, 180, 0] }
+  )
+  sendInfo(
+    'Sensitivity Factor Gamepad: ' +
+      (
+        GetResourceKvpFloat('GAMEPADLOOKSENS') ||
+        Config['gamepad-look-sens'].value
+      ).toFixed(3),
+    { color: [255, 180, 0] }
+  )
+  sendInfo(
+    'Sensitivity Factor Movement: ' +
+      (
+        GetResourceKvpFloat('MOVEMENTFACTOR') || Config['movement-factor'].value
+      ).toFixed(3),
+    { color: [255, 180, 0] }
+  )
+})
+RegisterCommand('acam-setconfig', (src, args, raw) => {
+  if (args.length == 0) {
+    return sendInfo(
+      'Format: acam-setconfig <' +
+        Object.keys(Config).join(' | ') +
+        '> <new value>'
+    )
+  }
+  if (!(args[0] in Config))
+    return sendError(
+      'Unkown config, please use one of the following: ' +
+        Object.keys(Config).join(', ')
+    )
+
+  const confObj = Config[args[0]]
+
+  if (args.length < 2)
+    return sendError(
+      'Please provide a value to be set as config (value type: ' +
+        confObj.type +
+        ')'
+    )
+
+  let value = args[1]
+  // not sure if I'll need integer config, I'll just add it just in case
+  if (confObj.type == 'float' || confObj.type == 'int') {
+    value = +args[1]
+    // I don't think there will ever be a negative value required
+    // in the config so I'll just go ahead and hardcode the < 0 rule
+    // instead of adding another property into the config file
+    if (value < 0 || Number.isNaN(value))
+      return sendError('You have to provide a numerical sensitivity above 0')
+
+    if (confObj.type == 'float')
+      SetResourceKvpFloat(args[0].split('-').join('').toUpperCase(), value)
+    else SetResourceKvpInt(args[0].split('-').join('').toUpperCase(), value)
+
+    sendInfo(
+      'Setted config ' +
+        args[0] +
+        ' to ' +
+        value.toFixed(3) +
+        '.' +
+        (cam != null && IsCamActive(cam)
+          ? " Changes will take effect after you've stopped watching the current player."
+          : '')
+    )
+    return
+  }
+
+  SetResourceKvp(args[0].split('-').join('').toUpperCase(), args[1])
+  sendInfo(
+    'Setted config ' +
+      args[0] +
+      ' to ' +
+      args[1] +
+      '.' +
+      (cam != null && IsCamActive(cam)
+        ? " Changes will take effect after you've stopped watching the current player."
+        : '')
+  )
+})
 
 RegisterCommand(
   'fixCamToPed',
@@ -149,15 +252,18 @@ RegisterCommand(
   false
 )
 
-function sendInfo(txt) {
+function sendInfo(txt, options = {}) {
   emit('chat:addMessage', {
-    args: ['[i]Admin Watch: ' + txt],
+    ...options,
+    multiline: true,
+    args: ['[i] Admin Watch', txt],
   })
 }
 
-function sendError(txt) {
+function sendError(txt, options = {}) {
   emit('chat:addMessage', {
-    args: ['[!]Admin Watch: ' + txt],
+    ...options,
+    args: ['[!] Admin Watch', txt],
   })
 }
 function log(txt) {
@@ -172,6 +278,7 @@ function playerInvisible() {
   let playerPed = GetPlayerPed(-1)
   let oldpLoc = playerLastLocation
   playerLastLocation = GetEntityCoords(playerPed)
+  Wait(1000)
   console.log(
     'Logged player last location from ' +
       JSON.stringify(oldpLoc) +
@@ -180,6 +287,7 @@ function playerInvisible() {
   )
   FreezeEntityPosition(playerPed, true)
   NetworkConcealEntity(playerPed, true)
+  SetEntityHeading(playerPed, 0)
 }
 
 function playerVisible() {
@@ -211,8 +319,20 @@ function playerVisible() {
 }
 
 let camControlTick = null
+
+let mouseSensFactor = Config['mouse-look-sens'].value
+let gamepadSensFactor = Config['gamepad-look-sens'].value
+let movementFactor = Config['movement-factor'].value
 function setTickTimer() {
   if (camControlTick != null) clearTickTimer()
+
+  mouseSensFactor =
+    GetResourceKvpFloat('MOUSELOOKSENS') || Config['mouse-look-sens'].value
+  gamepadSensFactor =
+    GetResourceKvpFloat('GAMEPADLOOKSENS') || Config['gamepad-look-sens'].value
+  movementFactor =
+    GetResourceKvpFloat('MOVEMENTFACTOR') || Config['movement-factor'].value
+
   camControlTick = setTick(adminTickFunc)
 }
 function clearTickTimer() {
@@ -241,24 +361,24 @@ function adminTickFunc() {
   if (IsControlPressed(0, 45)) {
     if (IsControlPressed(0, 71)) {
       // Zoom In
-      camOffset.fov -= GetControlValue(0, 71) / 30
+      camOffset.fov -= GetControlValue(0, 71) / 60
       if (camOffset.fov < camCoordRanges.fov.min)
         camOffset.fov = camCoordRanges.fov.min
     } else if (IsControlPressed(0, 72)) {
       // Zoom Out
-      camOffset.fov += GetControlValue(0, 72) / 30
+      camOffset.fov += GetControlValue(0, 72) / 60
       if (camOffset.fov > camCoordRanges.fov.max)
         camOffset.fov = camCoordRanges.fov.max
     }
   } else {
     // Move Left/Right
-    camOffset.coords[0] += (GetControlValue(0, 30) - 127) * 0.01
+    camOffset.coords[0] += (GetControlValue(0, 30) - 127) * movementFactor
     if (camOffset.coords[0] < camCoordRanges.x.min)
       camOffset.coords[0] = camCoordRanges.x.min
     else if (camOffset.coords[0] > camCoordRanges.x.max)
       camOffset.coords[0] = camCoordRanges.x.max
     // Move Forward/Backward
-    camOffset.coords[1] -= (GetControlValue(0, 31) - 127) * 0.01
+    camOffset.coords[1] -= (GetControlValue(0, 31) - 127) * movementFactor
     if (camOffset.coords[1] < camCoordRanges.y.min)
       camOffset.coords[1] = camCoordRanges.y.min
     else if (camOffset.coords[1] > camCoordRanges.y.max)
@@ -266,20 +386,20 @@ function adminTickFunc() {
 
     // Move Up
     if (IsControlPressed(0, 36)) {
-      camOffset.coords[2] += 0.7
+      camOffset.coords[2] += 70 * movementFactor
       if (camOffset.coords[2] > camCoordRanges.z.max)
         camOffset.coords[2] = camCoordRanges.z.max
     }
     // Move Down
     else if (IsControlPressed(0, 26)) {
-      camOffset.coords[2] -= 0.7
+      camOffset.coords[2] -= 100 * movementFactor
       if (camOffset.coords[2] < camCoordRanges.z.min)
         camOffset.coords[2] = camCoordRanges.z.min
     }
   }
 
   // higher sens for mouse
-  lookaroundSens = IsInputDisabled(2) ? 0.1 : 0.03
+  lookaroundSens = IsInputDisabled(2) ? mouseSensFactor : gamepadSensFactor
 
   // Look Left/Right
   camOffset.rot[2] -=
